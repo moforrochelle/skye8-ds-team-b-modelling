@@ -1,0 +1,23 @@
+# Environment
+.venv/
+venv
+.env
+
+# Distribution
+build/
+dist/
+*.egg-info/
+*.eggs/
+
+# Testing & Linting caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Cache
+__pycache__/
+
+# Data
+data/
+*.csv
+
