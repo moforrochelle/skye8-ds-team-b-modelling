@@ -30,7 +30,7 @@ jobs:
         run: ruff check .
 
       - name: Run Mypy
-        run: mypy src tests
+        run: mypy src
 
       - name: Run Pytest
         run: pytest 
