@@ -40,7 +40,7 @@ target-version = "py312"
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["src"]
+files = ["src", "tests"]
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
