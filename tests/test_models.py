@@ -13,7 +13,7 @@ from claims_fraud.models import (
 )
 
 
-@pytest.fixture  # type: ignore[untyped-decorator]
+@pytest.fixture
 def sample_data() -> pd.DataFrame:
     rng = np.random.default_rng()
     return pd.DataFrame(
@@ -25,7 +25,7 @@ def sample_data() -> pd.DataFrame:
     )
 
 
-@pytest.fixture  # type: ignore[untyped-decorator]
+@pytest.fixture
 def sample_prevalence(sample_data: pd.DataFrame) -> PrevalenceBaseline:
     df = sample_data
 
