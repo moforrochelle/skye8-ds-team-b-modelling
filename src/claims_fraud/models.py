@@ -64,7 +64,7 @@ def get_gradient_boosters(scale_pos_weight: float = 32.0) -> dict[str, BaseEstim
             verbose=-1,
         ),
         "xgboost": XGBClassifier(
-            n_extimators=100,
+            n_estimators=100,
             scale_pos_weight=scale_pos_weight,
             random_state=42,
             eval_metric="logloss",
