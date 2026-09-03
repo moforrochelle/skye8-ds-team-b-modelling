@@ -3,7 +3,10 @@ import pandas as pd
 from sklearn.datasets import make_classification
 from sklearn.linear_model import LogisticRegression
 
-from claims_fraud.evaluation import evaluate_cross_validation
+from claims_fraud.evaluation import (
+    evaluate_cross_validation,
+    evaluate_temporal_holdout,
+)
 
 
 def make_test_data() -> tuple[pd.DataFrame, pd.Series]:
@@ -44,3 +47,24 @@ def test_grouped_cross_validation_returns_five_folds() -> None:
     assert len(results) == 5
     assert set(results["scheme"]) == {"grouped"}
     assert results["pr_auc"].between(0, 1).all()
+
+
+def test_temporal_holdout_uses_only_earlier_claims_for_training() -> None:
+    x, y = make_test_data()
+    reported_at = pd.Series(pd.date_range("2024-01-01", periods=len(x), freq="D"))
+    model = LogisticRegression(max_iter=1_000)
+
+    results = evaluate_temporal_holdout(
+        estimator=model,
+        x=x,
+        y=y,
+        reported_at=reported_at,
+        holdout_start=pd.Timestamp("2024-05-30"),
+    )
+
+    row = results.iloc[0]
+    assert len(results) == 1
+    assert row["scheme"] == "temporal"
+    assert row["n_train"] == 150
+    assert row["n_test"] == 50
+    assert 0 <= row["pr_auc"] <= 1

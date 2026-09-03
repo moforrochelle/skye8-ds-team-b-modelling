@@ -93,3 +93,48 @@ def evaluate_cross_validation(
         )
 
     return pd.DataFrame(rows)
+
+
+def evaluate_temporal_holdout(
+    estimator: Any,
+    x: pd.DataFrame,
+    y: pd.Series,
+    reported_at: pd.Series,
+    holdout_start: pd.Timestamp,
+) -> pd.DataFrame:
+    """Evaluate a classifier on claims reported on or after a time cutoff."""
+    if not x.index.equals(y.index) or not x.index.equals(reported_at.index):
+        raise ValueError("x, y, and reported_at must have matching indexes.")
+
+    if not pd.api.types.is_datetime64_any_dtype(reported_at):
+        raise TypeError("reported_at must be parsed datetime data.")
+
+    if reported_at.isna().any():
+        raise ValueError("reported_at must not contain missing dates.")
+
+    cutoff = pd.Timestamp(holdout_start)
+    train_mask = reported_at < cutoff
+    test_mask = reported_at >= cutoff
+
+    if not train_mask.any() or not test_mask.any():
+        raise ValueError("The temporal split must contain training and test claims.")
+
+    metrics = _score_split(
+        estimator=estimator,
+        x_train=x.loc[train_mask],
+        y_train=y.loc[train_mask],
+        x_test=x.loc[test_mask],
+        y_test=y.loc[test_mask],
+    )
+
+    return pd.DataFrame(
+        [
+            {
+                "scheme": "temporal",
+                "fold": 1,
+                "n_train": int(train_mask.sum()),
+                "n_test": int(test_mask.sum()),
+                **metrics,
+            }
+        ]
+    )
