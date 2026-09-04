@@ -29,6 +29,9 @@ dev = [
     "types-setuptools"
 ]
 
+[project.scripts]
+score-claims = "claims_fraud.scores:main"
+
 [tool.black]
 line-length = 88
 target-version = ['py312']
