@@ -34,15 +34,12 @@ class PrevalenceBaseline(BaseEstimator, ClassifierMixin):  # type: ignore[misc]
 
 def get_baseline_models() -> dict[str, BaseEstimator]:
     """
-    Return initialized baseline estimators
+    Return initialized raw baseline estimators without class weighting.
     """
     return {
         "prevalence": PrevalenceBaseline(),
-        "logistic_regression": LogisticRegression(
-            class_weight="balanced", max_iter=1000, random_state=42
-        ),
+        "logistic_regression": LogisticRegression(max_iter=1000, random_state=42),
         "decision_tree": DecisionTreeClassifier(
-            class_weight="balanced",
             max_depth=5,
             random_state=42,
         ),
