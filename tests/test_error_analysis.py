@@ -70,7 +70,7 @@ def test_extract_case_study_samples(sample_claims_df: pd.DataFrame) -> None:
     y_probs = np.array([0.1, 0.95, 0.8, 0.85, 0.2, 0.15, 0.3, 0.1, 0.9, 0.05])
 
     fp_df, fn_df = extract_case_study_samples(
-        sample_claims_df, y_true, y_probs, k=4, n_samples=2, random_state=42
+        sample_claims_df, y_true, y_probs, threshold=0.4, n_samples=2, random_state=42
     )
 
     assert len(fp_df) <= 2

@@ -48,7 +48,7 @@ def extract_case_study_samples(
     df: pd.DataFrame,
     y_true: np.ndarray[Any, Any],
     y_prob: np.ndarray[Any, Any],
-    k: int,
+    threshold: float,
     n_samples: int = 20,
     random_state: int = 42,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -58,18 +58,28 @@ def extract_case_study_samples(
     analysis_df = df.copy()
     analysis_df["y_true"] = y_true
     analysis_df["y_prob"] = y_prob
+    analysis_df["y_pred"] = (y_prob >= threshold).astype(int)
 
-    df_top_k = get_top_k_claims(analysis_df, y_prob, k)
-    df_false_positive = df_top_k[df_top_k["y_true"] == 0]
+    df_false_positive = analysis_df[
+        (analysis_df["y_pred"] == 1) & (analysis_df["y_true"] == 0)
+    ]
+    df_false_negative = analysis_df[
+        (analysis_df["y_pred"] == 0) & (analysis_df["y_true"] == 1)
+    ]
 
-    outside_top_k = analysis_df.drop(index=df_top_k.index)
-    df_false_negative = outside_top_k[outside_top_k["y_true"] == 1]
-
-    fp_sample = df_false_positive.sample(
-        n=min(n_samples, len(df_false_positive)), random_state=random_state
+    fp_sample = (
+        df_false_positive.sample(
+            n=min(n_samples, len(df_false_positive)), random_state=random_state
+        )
+        if len(df_false_positive) > 0
+        else pd.DataFrame(columns=analysis_df.columns)
     )
-    fn_sample = df_false_negative.sample(
-        n=min(n_samples, len(df_false_negative)), random_state=random_state
+    fn_sample = (
+        df_false_negative.sample(
+            n=min(n_samples, len(df_false_negative)), random_state=random_state
+        )
+        if len(df_false_negative) > 0
+        else pd.DataFrame(columns=analysis_df.columns)
     )
 
     return fp_sample, fn_sample
