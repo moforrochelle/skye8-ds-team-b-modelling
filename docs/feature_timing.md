@@ -1,89 +1,215 @@
-# Feature Timing
+# Feature Timing and Leakage Rules
 
-The model is meant to rank a claim when it is first filed. Because of this, I only want to use information that would be available at the time the claim is being scored.
+## Scoring point
 
-| Column | Can we use it? | Reason |
-|---|---|---|
-| `claim_id` | No | It is just an identifier and does not provide useful information for the model. |
-| `policy_id` | No | It is an identifier. We use the information from the policy instead. |
-| `garage_id` | No as a feature | It is an identifier. We use the available garage information instead. |
-| `adjuster_id` | No as a feature | It is an identifier. Adjuster information is only used if the adjuster has already been assigned. |
-| `incident_type` | Yes | Known when the claim is filed. |
-| `incident_date` | Yes | Known when the claim is filed. |
-| `incident_hour` | Yes | Known when the claim is filed. |
-| `reported_date` | Yes | Known when the claim is reported. |
-| `claim_amount_xaf` | Yes | Known when the claim is filed. |
-| `police_report` | Yes | Available as part of the claim information. |
-| `witness_count` | Yes | Available when the claim is filed. |
-| `prior_claims_holder` | Yes | This information is already available about the policy holder. |
-| `vehicle_towed` | Yes | Known as part of the claim. |
-| `investigation_opened` | No | This happens after the claim has entered the investigation process. |
-| `days_to_settle` | No | We only know this after the claim has been settled. |
-| `amount_paid_xaf` | No | We only know this after payment. |
-| `fraud_flag` | No | This is the target we are trying to predict. |
+A claim is ready for fraud scoring when it is reported.
+
+We use `reported_date` as the main time point for deciding which information can be used by the model.
+
+A feature can be used only if the information would be known at or before `reported_date`.
+
+Information that becomes available after the claim is reported must not be used for the first fraud score.
+
+---
+
+## Claim information
+
+The following claim information is available when the claim is reported:
+
+* `incident_type`
+* `incident_hour`
+* `police_report`
+* `witness_count`
+* `prior_claims_holder`
+* `vehicle_towed`
+* `claim_amount_xaf`
+
+These features are used as claim-level inputs to the model.
+
+---
 
 ## Policy information
 
-Policy information can be used because it is already available when a claim is made.
+Policy information is used only when it is available at the time of scoring.
 
-Some of the policy information we use includes:
+The model uses:
 
-- vehicle make
-- vehicle year
-- cover type
-- sum insured
-- annual premium
-- policy start date
-- payment frequency
-- registered year
+* `region`
+* `vehicle_make`
+* `vehicle_year`
+* `cover_type`
+* `sum_insured_xaf`
+* `annual_premium_xaf`
+* `payment_frequency`
+* `policy_start`
 
-We also use this information to create features such as policy age and vehicle age.
+These values describe the policy that is linked to the claim.
+
+---
+
+## Holder history
+
+Holder history is based on `reported_date`.
+
+For a claim, only earlier claims from the same holder can be used.
+
+A claim reported on the same date is not treated as an earlier claim.
+
+The model uses:
+
+* `holder_claim_count`
+* `holder_history_days`
+* `holder_claim_frequency`
+
+During validation, history is calculated separately for each training and validation set.
+
+For training claims, only other training claims are used to create the history.
+
+For validation claims, only the training data is used as the history source.
+
+This prevents validation claims from changing the history used by the model during training.
+
+---
 
 ## Garage information
 
-Garage information can be used if the garage is already known when the claim is scored.
+Garage information can be used only if the garage is already known when the claim is scored.
 
-We use information such as the garage name, town, approval status and number of bays. The `garage_id` itself is not used as a numeric feature.
+The dataset does not contain a timestamp showing when a garage was assigned to a claim. Because of this, we cannot directly confirm that the garage was known at `reported_date`.
+
+The garage features used by the model are:
+
+* `town`
+* `registered_year`
+* `bay_count`
+* `approved`
+
+`garage_id` is not used directly as a model feature.
+
+`garage_name` was removed from the final feature set. It could act as a garage identifier, and the grouped-by-garage test showed that keeping it did not improve PR-AUC.
+
+If the garage is assigned after `reported_date`, these garage features must not be used for the first fraud score.
+
+---
 
 ## Adjuster information
 
-Adjuster information is only used if the adjuster has already been assigned when the claim is scored.
+Adjuster information can be used only if the adjuster is already known when the claim is scored.
 
-We use information such as the adjuster's region, hiring year and caseload band. The `adjuster_id` itself is not used as a numeric feature.
+The dataset does not contain a timestamp showing when an adjuster was assigned to a claim. Because of this, we cannot directly confirm that the adjuster was known at `reported_date`.
 
-If the adjuster is assigned later, that information should not be used for scoring the claim.
+The model uses:
 
-## Features we created
+* `adjuster_region`
+* `hired_year`
+* `caseload_band`
 
-From the information available at claim time, we created features including:
+`adjuster_id` is not used directly as a model feature.
 
-- reporting delay
-- policy age
-- vehicle age
-- claim amount to sum insured ratio
-- incident month
-- incident day of the week
-- night-hour indicator
-- late-report indicator
-- negative reporting delay indicator
-- negative policy age indicator
+If the adjuster is assigned after `reported_date`, these features must not be used for the first fraud score.
 
-We also created historical features for repeated entities, such as the number of previous claims made by a policy holder and the holder's claim frequency.
+---
 
-## Entity history
+## Engineered features
 
-Claims can be related because the same policy holder, garage or adjuster can appear in multiple claims.
+The model also uses features created from information that should be available at scoring time.
 
-For this reason, we use historical information such as previous claim counts and claim frequency. The important rule is that the history for a claim must only contain information that would have been available before that claim.
+These include:
 
-When training the model, the history features are calculated using the appropriate training data so that information from the validation data does not leak into the features.
+* `claim_amount_clean`
+* `claim_to_insured_ratio`
+* `reporting_delay`
+* `policy_age_days`
+* `vehicle_age`
+* `incident_month`
+* `incident_dayofweek`
+* `night_hour`
+* `late_report`
+* `negative_reporting_delay`
+* `negative_policy_age`
 
-## Leakage rule
+These features are calculated from the claim, policy, and date information available to the model.
 
-The main rule I followed when creating the features is:
+---
 
-**If the information becomes available after the claim has been assessed, investigated or settled, it should not be used by the model.**
+## Information that must not be used
 
-This means that `investigation_opened`, `days_to_settle`, `amount_paid_xaf` and `fraud_flag` are excluded from the model.
+The following fields are not used as model features because they are only known after the claim has been processed or investigated:
 
-The preprocessing and encoding steps are also part of the training pipeline, so they are fitted on the training data rather than on the full dataset before the split.
+* `investigation_opened`
+* `days_to_settle`
+* `amount_paid_xaf`
+* `fraud_flag`
+
+`fraud_flag` is the target that the model is trying to predict.
+
+These fields must not enter the model feature matrix.
+
+---
+
+## Data preparation during validation
+
+All data preparation steps must be fitted using the training data only.
+
+This includes:
+
+* missing-value filling
+* scaling
+* categorical encoding
+* any target encoding
+* resampling
+* model fitting
+
+The validation data must not be used to fit these steps.
+
+This keeps the validation results honest.
+
+---
+
+## Temporal evaluation
+
+The model is evaluated using `reported_date` so that future claims are not used to predict earlier claims.
+
+The data is divided into:
+
+* Development period: January 2023 to December 2025
+* Temporal evaluation: January 2026 to June 2026
+* Final holdout: July 2026 to December 2026
+
+The final holdout is kept separate until the final evaluation.
+
+For the January–June 2026 evaluation, holder history is created using only claims from the development period.
+
+For the July–December 2026 final holdout, holder history is created using claims available before July 2026.
+
+The final holdout must not be used to fit the model or any preprocessing steps before the final score is calculated.
+
+---
+
+## Evaluation results
+
+The model was checked in several ways.
+
+Random 5-fold cross-validation gave:
+
+* PR-AUC: `0.1681 ± 0.0165`
+* ROC-AUC: `0.8275 ± 0.0156`
+
+Grouped-by-garage cross-validation gave:
+
+* PR-AUC: `0.0533 ± 0.0309`
+* ROC-AUC: `0.5933 ± 0.1050`
+
+The January–June 2026 temporal evaluation gave:
+
+* PR-AUC: `0.1139`
+* ROC-AUC: `0.7549`
+
+The final July–December 2026 holdout gave:
+
+* PR-AUC: `0.1671`
+* ROC-AUC: `0.7952`
+
+The grouped-by-garage result is much lower than the random and temporal results. This shows that model performance is weaker when the model has to work with garages that were not seen during training.
+
+The final holdout result is kept separate because it is the final test of the model on later claims.
