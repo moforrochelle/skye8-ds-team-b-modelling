@@ -15,4 +15,4 @@ repos:
     hooks:
       - id: mypy
         files: ^(src|tests)/
-        additional_dependencies: [pandas-stubs, types-pytz]
+        additional_dependencies: [pandas-stubs, types-pytz, pytest]
