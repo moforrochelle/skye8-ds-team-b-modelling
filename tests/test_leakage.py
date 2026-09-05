@@ -31,7 +31,7 @@ def test_model_matrix_excludes_post_assessment_columns() -> None:
     with patch(
         "claims_fraud.validation_tuning.load_data", return_value=mock_bundle
     ) as mock_load:
-        bundle = load_data(DATA_DIR)
+        bundle = load_data(DATA_DIR)  # ← This line is already correct
         # Verify the mock was used
         mock_load.assert_called_once()
 
