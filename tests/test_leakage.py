@@ -1,9 +1,12 @@
 # tests/test_leakage.py
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pandas as pd
 
 from claims_fraud.validation_tuning import POST_ASSESSMENT, load_data
+
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
 
 def test_model_matrix_excludes_post_assessment_columns() -> None:
@@ -24,9 +27,14 @@ def test_model_matrix_excludes_post_assessment_columns() -> None:
     mock_bundle = Mock()
     mock_bundle.X = mock_X
 
-    # Patch load_data to return mock bundle
-    with patch("claims_fraud.validation_tuning.load_data", return_value=mock_bundle):
-        bundle = load_data(None)  # Pass None since load_data is mocked
+    # Patch load_data BEFORE calling it
+    with patch(
+        "claims_fraud.validation_tuning.load_data", return_value=mock_bundle
+    ) as mock_load:
+        bundle = load_data(DATA_DIR)
+        # Verify the mock was used
+        mock_load.assert_called_once()
+
         leaked = POST_ASSESSMENT.intersection(bundle.X.columns)
         assert (
             not leaked
