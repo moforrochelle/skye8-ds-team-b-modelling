@@ -188,27 +188,27 @@ The final holdout must not be used to fit the model or any preprocessing steps b
 
 ## Evaluation results
 
-The model was checked in several ways.
+The model was checked in several ways. These numbers were regenerated from a clean run of the current pipeline (`notebooks/validation_tuning.ipynb`, balanced-class-weight logistic baseline, `scikit-learn==1.9.0` as pinned in `pyproject.toml`) — regenerate again before final submission if the feature set or model changes.
 
 Random 5-fold cross-validation gave:
 
-* PR-AUC: `0.1681 ± 0.0165`
-* ROC-AUC: `0.8275 ± 0.0156`
+* PR-AUC: `0.1078 ± 0.0145`
+* ROC-AUC: `0.7748 ± 0.0156`
 
 Grouped-by-garage cross-validation gave:
 
-* PR-AUC: `0.0533 ± 0.0309`
-* ROC-AUC: `0.5933 ± 0.1050`
+* PR-AUC: `0.0544 ± 0.0357`
+* ROC-AUC: `0.5740 ± 0.1328`
 
 The January–June 2026 temporal evaluation gave:
 
-* PR-AUC: `0.1139`
-* ROC-AUC: `0.7549`
+* PR-AUC: `0.1143`
+* ROC-AUC: `0.7539`
 
 The final July–December 2026 holdout gave:
 
-* PR-AUC: `0.1671`
-* ROC-AUC: `0.7952`
+* PR-AUC: `0.1669`
+* ROC-AUC: `0.7949`
 
 The grouped-by-garage result is much lower than the random and temporal results. This shows that model performance is weaker when the model has to work with garages that were not seen during training.
 

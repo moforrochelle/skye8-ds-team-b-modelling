@@ -1,0 +1,4 @@
+scheme,PR-AUC,ROC-AUC,fraud prevalence
+Random stratified 5-fold,0.1078 ± 0.0145,0.7748 ± 0.0156,0.0305
+Grouped by garage 5-fold,0.0544 ± 0.0357,0.5740 ± 0.1328,0.0303
+Temporal Jan-Jun 2026,0.1143,0.7539,0.0384
