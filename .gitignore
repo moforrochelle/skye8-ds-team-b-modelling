@@ -17,7 +17,9 @@ dist/
 # Cache
 __pycache__/
 
+
+
 # Data
 data/
 *.csv
-
+!outputs/*.csv
