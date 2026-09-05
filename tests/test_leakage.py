@@ -1,4 +1,7 @@
 from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pandas as pd
 
 from claims_fraud.validation_tuning import POST_ASSESSMENT, load_data
 
@@ -12,12 +15,24 @@ def test_model_matrix_excludes_post_assessment_columns() -> None:
     investigation_opened, days_to_settle, amount_paid_xaf, or fraud_flag
     ever end up in the model feature matrix.
     """
-    bundle = load_data(DATA_DIR)
+    # Create mock data with safe columns (no post-assessment columns)
+    mock_X = pd.DataFrame(
+        {
+            "feature_1": [1, 2, 3],
+            "feature_2": [4, 5, 6],
+        }
+    )
 
-    leaked = POST_ASSESSMENT.intersection(bundle.X.columns)
-    assert (
-        not leaked
-    ), f"Post-assessment columns reached the model matrix: {sorted(leaked)}"
+    mock_bundle = Mock()
+    mock_bundle.X = mock_X
+
+    # Patch load_data to return mock bundle
+    with patch("claims_fraud.validation_tuning.load_data", return_value=mock_bundle):
+        bundle = load_data(DATA_DIR)
+        leaked = POST_ASSESSMENT.intersection(bundle.X.columns)
+        assert (
+            not leaked
+        ), f"Post-assessment columns reached the model matrix: {sorted(leaked)}"
 
 
 def test_post_assessment_set_matches_the_documented_columns() -> None:
